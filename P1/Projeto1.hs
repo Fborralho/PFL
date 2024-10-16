@@ -12,6 +12,21 @@ type Distance = Int
 
 type RoadMap = [(City,City,Distance)]
 
+getFirstCity :: (City,City,Distance) -> City
+getFirstCity (city1,_,_) = city1
+
+getSecondCity :: (City,City,Distance) -> City
+getSecondCity (_,city2,_) = city2
+
+getDistance :: (City,City,Distance) -> Distance
+getDistance (_,_,distance) = distance
+
+removeRepeatedCities :: [City] -> [City]
+removeRepeatedCities [] = []
+removeRepeatedCities (x:xs)
+    | x `elem` xs  = removeRepeatedCities xs
+    | otherwise = x : removeRepeatedCities xs
+
 cities :: RoadMap -> [City]
 cities roadMap = Data.List.nub [city | (city1, city2, _) <- roadMap, city <- [city1, city2]]
 
@@ -25,16 +40,66 @@ distance roadMap c1 c2 =
         else Nothing
 
 adjacent :: RoadMap -> City -> [(City,Distance)]
-adjacent = undefined
+adjacent [] city = []
+adjacent (x:xs) city
+    | getFirstCity x == city = (getSecondCity x, getDistance x) : adjacent xs city
+    | getSecondCity x == city = (getFirstCity x, getDistance x): adjacent xs city
+    | otherwise = adjacent xs city
+
+pathExists :: RoadMap -> Path -> Bool
+pathExists [] _ = False
+pathExists _ [] = True
+pathExists _ [_] = True
+pathExists roadMap (x:xs)
+    | not (areAdjacent roadMap x (head xs)) = False
+    | otherwise = pathExists roadMap xs
+
+pathDistance' :: RoadMap -> Path -> Distance
+pathDistance' [] _ = 0
+pathDistance' _ [] = 0
+pathDistance' _ [_] = 0
+pathDistance' roadMap (x:y:xs) =
+    case distance roadMap x y of
+        Just d -> d + pathDistance' roadMap (y:xs)
 
 pathDistance :: RoadMap -> Path -> Maybe Distance
-pathDistance = undefined
+pathDistance [] _ = Nothing
+pathDistance _ [] = Just 0
+pathDistance _ [_] = Just 0
+pathDistance roadMap path
+    | not (pathExists roadMap path) = Nothing
+    | otherwise = Just (pathDistance' roadMap path)
+
+numberOfConnections :: RoadMap -> City -> Int
+numberOfConnections [] _ = 0
+numberOfConnections roadMap city = length (adjacent roadMap city)
+
+getNumberOfConnectionsList :: RoadMap -> [City] -> [(City,Int)]
+getNumberOfConnectionsList [] _ = []
+getNumberOfConnectionsList _ [] = []
+getNumberOfConnectionsList roadMap (x:xs) = (x,numberOfConnections roadMap x) : getNumberOfConnectionsList roadMap xs
+
+filterConnections :: [(City,Int)] -> Int -> [City]
+filterConnections [] _ = []
+filterConnections (x:xs) value
+    | snd x == value = fst x : filterConnections xs value
+    | otherwise = filterConnections xs value
+
 
 rome :: RoadMap -> [City]
-rome = undefined
+rome [] = []
+rome roadMap = filterConnections (getNumberOfConnectionsList roadMap (cities roadMap)) maxConnections
+    where
+        maxConnections = maximum (map snd (getNumberOfConnectionsList roadMap (cities roadMap)))
 
 isStronglyConnected :: RoadMap -> Bool
-isStronglyConnected = undefined
+isStronglyConnected [] = True
+isStronglyConnected roadMap
+    |any cityPair (getNumberOfConnectionsList roadMap (cities roadMap)) = False
+    |otherwise = True
+        where 
+            cityPair(_,connectionNumber) = connectionNumber /= length (cities roadMap) - 1
+
 
 shortestPath :: RoadMap -> City -> City -> [Path]
 shortestPath = undefined
