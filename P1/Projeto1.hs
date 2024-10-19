@@ -9,7 +9,6 @@ import qualified Data.Bits
 type City = String
 type Path = [City]
 type Distance = Int
-
 type RoadMap = [(City,City,Distance)]
 
 getFirstCity :: (City,City,Distance) -> City
@@ -102,7 +101,25 @@ isStronglyConnected roadMap
 
 
 shortestPath :: RoadMap -> City -> City -> [Path]
-shortestPath = undefined
+shortestPath roadMap start end
+    | start == end = [[start]]  -- Cidade e destino iguais
+    | otherwise = bfs [[start]] [] []
+    where
+        -- bfs
+        bfs :: [Path] -> [Path] -> [City] -> [Path]
+        bfs [] shortestPaths _ = shortestPaths  
+        bfs (path:paths) shortestPaths visited
+            | last path == end =  
+                if null shortestPaths || length path == length (head shortestPaths)
+                then bfs paths (path:shortestPaths) visited  -- Adiciona este caminho como mais curto
+                else bfs paths shortestPaths visited 
+            | otherwise =
+                let city = last path 
+                    newVisited = city : visited  -- Marcar visita
+                    -- Procura novos caminhos para os nao visitados
+                    newPaths = [path ++ [neighbor] | (neighbor, _) <- adjacent roadMap city, neighbor `notElem` visited]
+                in bfs (paths ++ newPaths) shortestPaths newVisited 
+
 
 travelSales :: RoadMap -> Path
 travelSales = undefined
